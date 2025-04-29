@@ -1,50 +1,29 @@
-body, html {
+body,
+html {
   background-color: #e9ecef;
   height: 100%;
 }
 
-/* 調整 container 的樣式 */
+.app-wrapper {
+  background-color: #e9ecef;
+  min-height: 100vh;
+}
+
+/* 容器樣式 */
 .container {
   margin-top: 60px;
 }
-.search-card{
+
+/* 搜尋區塊卡片 */
+.search-card {
   padding: 20px;
   background-color: #f9f9f9;
+  border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 1px solid #ddd;
 }
 
-h2 {
-  font-size: 2rem;  /* 增大標題字體 */
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.form-label {
-  font-size: 1rem;
-  margin-bottom: 10px;  /* 增加標籤底部距離 */
-}
-
-.form-control {
-  font-size: 1rem;
-  padding: 12px;  /* 增加內邊距 */
-  border-radius: 5px;
-  border: 1px solid #ddd;
-}
-
-#resultTitle {
-  font-size: 1.4rem;
-  font-weight: 500;
-  margin-top: 30px;
-  display: none;
-  text-align: center;
-}
-
-#results {
-  margin-top: 20px;
-}
-
+/* 搜尋結果卡片樣式 */
 .card {
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -71,7 +50,9 @@ h2 {
   margin: 10px 0;
 }
 
-.loading-message {
+/* 訊息樣式 */
+.loading-message,
+.error-message {
   font-size: 1.2rem;
   text-align: center;
   color: #555;

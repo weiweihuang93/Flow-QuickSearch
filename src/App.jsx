@@ -1,34 +1,53 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-const TRACK_URL = import.meta.env.VITE_TRACK_URL;
+const SEARCH_URL = import.meta.env.VITE_SEARCH_URL;
+const TRACKADD_URL = import.meta.env.VITE_TRACKADD_URL;
+const TRACKGET_URL = import.meta.env.VITE_TRACKGET_URL;
+const TRACKREMOVE_URL = import.meta.env.VITE_TRACKREMOVE_URL;
 
 function App() {
-
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [trackedItems, setTrackedItems] = useState([]); // 用來存放追蹤的商品名稱
+  const [trackedItems, setTrackedItems] = useState([]);
 
   const handleSearch = async (event) => {
-    event.preventDefault(); // 防止表單提交刷新頁面
-
-    if (!query.trim()) return; // 如果查詢為空，直接返回
+    event.preventDefault();
+    if (!query.trim()) return;
 
     setLoading(true);
     setError('');
     setResults([]);
 
     try {
-      // 發送請求到 n8n Webhook（這裡需要填寫實際的 URL）
-      const response = await axios.post(`${BASE_URL}`, { query });
-
-      // 假設返回的資料格式是包含 products 的陣列
+      const response = await axios.post(`${SEARCH_URL}`, { query });
       const products = response.data[0].products;
 
-      if (products && products.length === 0) {
+      if (!products || products.length === 0) {
+        setResults([{ message: '沒有找到任何結果。' }]);
+      } else {
+        setResults(products);
+      }
+    } catch (err) {
+      console.error('發生錯誤:', err);
+      setError('搜尋時發生錯誤，請稍後再試。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearchItem = async (productName) => {
+    setLoading(true);
+    setError('');
+    setResults([]);
+
+    try {
+      const response = await axios.post(`${SEARCH_URL}`, { query: productName });
+      const products = response.data[0].products;
+
+      if (!products || products.length === 0) {
         setResults([{ message: '沒有找到任何結果。' }]);
       } else {
         setResults(products);
@@ -42,7 +61,6 @@ function App() {
   };
 
   const handleTrack = async (productName) => {
-    // 獲取當前時間戳並轉換為格式化的時間
     const timestamp = new Date().toLocaleString('zh-TW', {
       year: 'numeric',
       month: '2-digit',
@@ -51,13 +69,15 @@ function App() {
       minute: '2-digit',
       second: '2-digit',
     });
-    // 當用戶點擊「加入追蹤」按鈕時，發送 POST 請求將商品名稱及時間戳加入追蹤列表
+
     try {
-      const response = await axios.post(`${TRACK_URL}`, { productName, timestamp });
-      
+      const response = await axios.post(`${TRACKADD_URL}`, { productName, timestamp });
+
       if (response.status === 200) {
-        // 如果成功加入追蹤，將商品名稱及時間戳加入到追蹤列表
-        setTrackedItems((prevItems) => [...prevItems, { productName, timestamp }]);
+        setTrackedItems((prevItems) => [
+          ...prevItems,
+          { 商品名稱: productName, 建立時間: timestamp },
+        ]);
         alert('商品已加入追蹤');
       }
     } catch (err) {
@@ -66,48 +86,125 @@ function App() {
     }
   };
 
+  const handleViewTrackedItems = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${TRACKGET_URL}`);
+      if (response.data && Array.isArray(response.data)) {
+        setTrackedItems(response.data);
+      } else {
+        alert('追蹤清單格式錯誤');
+      }
+    } catch (err) {
+      console.error('讀取追蹤清單失敗', err);
+      alert('讀取失敗，請稍後再試');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveTrackedItem = async (productName) => {
+    try {
+      const response = await axios.post(`${TRACKREMOVE_URL}`, {
+        productName,
+      });
+      if (response.status === 200) {
+        const newTrackedItems = await axios.get(`${TRACKGET_URL}`);
+        setTrackedItems(newTrackedItems.data);
+        alert('已移除追蹤項目');
+      }
+    } catch (err) {
+      console.error('刪除失敗', err);
+      alert('無法移除，請稍後再試');
+    }
+  };
+
   return (
-    <div style={{ backgroundColor: '#e9ecef', minHeight: '100vh' }}>
+    <div className="app-wrapper">
       <div className="container">
         <div className="search-card">
-          <h2 className="fw-bold">搜尋商品</h2>
+          <h2 className="text-center fw-bold mb-4">搜尋商品</h2>
+
           <form onSubmit={handleSearch}>
             <div className="mb-3">
-              <label htmlFor="searchQuery" className="form-label fs-4">請輸入商品名稱</label>
+              <label htmlFor="searchQuery" className="form-label fs-4">
+                請輸入商品名稱
+              </label>
               <input
                 type="text"
-                className="form-control py-3 mb-3"
+                className="form-control py-3"
                 id="searchQuery"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 required
               />
-              <button
-                type="submit"
-                className="btn btn-primary fw-bold mb-3 w-100"
-              >
-                搜尋
-              </button>
+            </div>
+
+            <button type="submit" className="btn btn-primary fw-bold w-100 mb-3">
+              搜尋
+            </button>
+
+            <div className="d-lg-flex gap-3">
               <button
                 type="button"
-                className="btn btn-success fw-bold w-100"
+                className="btn btn-success fw-bold w-100 mb-3 mb-lg-0"
                 onClick={() => handleTrack(query)}
               >
                 加入追蹤
               </button>
+              <button
+                type="button"
+                className="btn btn-warning fw-bold w-100"
+                onClick={handleViewTrackedItems}
+              >
+                查看追蹤清單
+              </button>
             </div>
           </form>
 
-          {loading && <div className="loading-message">搜尋中...</div>}
-
+          {loading && (
+            <div className="loading-message">
+              {results.length === 0 ? '搜尋中...' : '載入追蹤清單中...'}
+            </div>
+          )}
           {error && <div className="error-message">{error}</div>}
+
+          {trackedItems.length > 0 && (
+            <div className="mt-4">
+              <h3>已追蹤清單</h3>
+              <ul className="list-group">
+                {trackedItems.map((item, index) => (
+                  <li
+                    key={index}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
+                    <span>{item['商品名稱']}<br></br>{item['建立時間']}）</span>
+                    <div className="d-flex gap-2">
+                      <button
+                        className="btn btn-primary fw-bold"
+                        onClick={() => handleSearchItem(item['商品名稱'])}
+                      >
+                        搜尋
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleRemoveTrackedItem(item['商品名稱'])}
+                      >
+                        移除
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {results.length > 0 && (
             <>
               <h3 className="mt-4">搜尋結果：</h3>
               <div id="results" className="mt-4">
                 {results.map((product, index) => (
-                  <div className="card" key={index}>
+                  <div className="card mb-3" key={index}>
                     <div className="card-body">
                       {product.message ? (
                         <p>{product.message}</p>
@@ -115,7 +212,9 @@ function App() {
                         <>
                           <h5 className="card-title">{product.productName}</h5>
                           <p className="card-text">價格: {product.salePrice}</p>
-                          <a href="#" className="btn btn-warning">查看詳情</a>
+                          <a href="#" className="btn btn-warning">
+                            查看詳情
+                          </a>
                         </>
                       )}
                     </div>
