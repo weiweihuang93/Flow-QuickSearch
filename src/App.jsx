@@ -61,6 +61,7 @@ function App() {
   };
 
   const handleTrack = async (productName) => {
+    const id = Date.now(); // 用時間戳記當作唯一 ID
     const timestamp = new Date().toLocaleString('zh-TW', {
       year: 'numeric',
       month: '2-digit',
@@ -71,12 +72,16 @@ function App() {
     });
 
     try {
-      const response = await axios.post(`${TRACKADD_URL}`, { productName, timestamp });
+      const response = await axios.post(`${TRACKADD_URL}`, {
+        id,
+        productName,
+        timestamp,
+      });
 
       if (response.status === 200) {
         setTrackedItems((prevItems) => [
           ...prevItems,
-          { 商品名稱: productName, 建立時間: timestamp },
+          { id, 商品名稱: productName, 建立時間: timestamp },
         ]);
         alert('商品已加入追蹤');
       }
@@ -103,11 +108,9 @@ function App() {
     }
   };
 
-  const handleRemoveTrackedItem = async (productName) => {
+  const handleRemoveTrackedItem = async (id) => {
     try {
-      const response = await axios.post(`${TRACKREMOVE_URL}`, {
-        productName,
-      });
+      const response = await axios.post(`${TRACKREMOVE_URL}`, { id });
       if (response.status === 200) {
         const newTrackedItems = await axios.get(`${TRACKGET_URL}`);
         setTrackedItems(newTrackedItems.data);
@@ -173,22 +176,25 @@ function App() {
             <div className="mt-4">
               <h3>已追蹤清單</h3>
               <ul className="list-group">
-                {trackedItems.map((item, index) => (
+                {trackedItems.map((item) => (
                   <li
-                    key={index}
+                    key={item.id}
                     className="list-group-item d-flex justify-content-between align-items-center"
                   >
-                    <span>{item['商品名稱']}<br></br>{item['建立時間']}）</span>
+                    <span>
+                      {item['商品名稱']}<br />
+                      {item['建立時間']}
+                    </span>
                     <div className="d-flex gap-2">
                       <button
-                        className="btn btn-primary fw-bold"
+                        className="btn btn-primary btn-sm"
                         onClick={() => handleSearchItem(item['商品名稱'])}
                       >
                         搜尋
                       </button>
                       <button
                         className="btn btn-danger btn-sm"
-                        onClick={() => handleRemoveTrackedItem(item['商品名稱'])}
+                        onClick={() => handleRemoveTrackedItem(item.id)}
                       >
                         移除
                       </button>
@@ -212,7 +218,7 @@ function App() {
                         <>
                           <h5 className="card-title">{product.productName}</h5>
                           <p className="card-text">價格: {product.salePrice}</p>
-                          <a href="#" className="btn btn-warning">
+                          <a href={product.link} className="btn btn-warning">
                             查看詳情
                           </a>
                         </>
